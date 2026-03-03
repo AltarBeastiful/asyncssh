@@ -436,7 +436,7 @@ async def _open_tunnel(tunnels: object, options: _Options,
     port: DefTuple[int]
 
     if isinstance(tunnels, str):
-        conn: Optional[SSHClientConnection] = None
+        conn: object = ()
 
         for tunnel in tunnels.split(','):
             if '@' in tunnel:

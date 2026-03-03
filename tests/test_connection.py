@@ -27,7 +27,7 @@ from pathlib import Path
 import socket
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import asyncssh
 from asyncssh.constants import MSG_IGNORE, MSG_DEBUG
@@ -536,6 +536,29 @@ class _TestConnection(ServerTestCase):
                        _slow_connect):
                 await asyncssh.listen(server_host_keys=['skey'],
                                       tunnel='', connect_timeout=1)
+
+    @asynctest
+    async def test_open_tunnel_preserves_sentinel(self):
+        """Test that _open_tunnel passes sentinel to allow ProxyJump config"""
+
+        from asyncssh.connection import _open_tunnel
+
+        mock_conn = MagicMock()
+        mock_conn.set_tunnel = MagicMock()
+        mock_connect = AsyncMock(return_value=mock_conn)
+
+        mock_options = MagicMock()
+        mock_options.passphrase = None
+        mock_options.canonicalize_hostname = False
+
+        with patch('asyncssh.connection.connect', mock_connect):
+            await _open_tunnel('hop1', mock_options, ())
+
+        mock_connect.assert_called_once()
+        _, kwargs = mock_connect.call_args
+        self.assertEqual(kwargs['tunnel'], (),
+                         'First hop tunnel arg should be sentinel () '
+                         'to allow ProxyJump config lookup')
 
     @asynctest
     async def test_invalid_connect_timeout(self):
